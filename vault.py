@@ -12,7 +12,7 @@ import pickle
 import argparse
 import getpass
 import string
-import random
+import secrets
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -34,7 +34,7 @@ def random_password(length=24, punctuation=False):
     source = string.ascii_letters+string.digits
     if punctuation:
         source += '!@#$%^&*()<>[]{}-+=/'
-    r = random.SystemRandom()
+    r = secrets.SystemRandom()
     return ''.join(r.choice(source) for _ in range(length))
 
 
@@ -60,6 +60,8 @@ def password_to_key(password, salt):
     )
     return base64.urlsafe_b64encode(kdf.derive(password))
 
+#: Salt size in bytes
+SALT_SIZE = 32
 
 class Storage(object):
     """
@@ -77,7 +79,7 @@ class Storage(object):
     def new(self):
         """Set up a new vault, with a new salt"""
         with open(self.filename,'wb') as f:
-            f.write(os.urandom(16))
+            f.write(secrets.token_bytes(SALT_SIZE))
 
     def lock(self, data):
         """
@@ -87,7 +89,7 @@ class Storage(object):
             data (object): The contents of the vault, as a python object.
         """
         with open(self.filename,'rb') as f:
-            salt = f.read(16)
+            salt = f.read(SALT_SIZE)
         with open(self.filename,'wb') as f:
             f.write(salt)
             fe = Fernet(password_to_key(self.master_password, salt))
@@ -102,7 +104,7 @@ class Storage(object):
             data (object): The contents of the vault, as a python object.
         """
         with open(self.filename,'rb') as f:
-            salt = f.read(16)
+            salt = f.read(SALT_SIZE)
             en_data = base64.urlsafe_b64encode(f.read())
             fe = Fernet(password_to_key(self.master_password, salt))
             return pickle.loads(fe.decrypt(en_data))

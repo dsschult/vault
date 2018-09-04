@@ -67,7 +67,7 @@ class VaultTests(unittest.TestCase):
         s = vault.Storage(filename, masterpass)
         s.new()
 
-        self.assertEqual(os.path.getsize(filename), 16)
+        self.assertEqual(os.path.getsize(filename), vault.SALT_SIZE)
 
     def test_11_storage_lock(self):
         for n in range(3):
